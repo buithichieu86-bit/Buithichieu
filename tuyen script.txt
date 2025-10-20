@@ -1,0 +1,72 @@
+-- Roblox Mobile Player Abilities Script (VIP Version) -- Features: Fly, Sprint, Teleport + Red GUI with VIP Header -- Place this LocalScript in StarterPlayer > StarterPlayerScripts
+
+local Players = game:GetService("Players") local UserInputService = game:GetService("UserInputService") local RunService = game:GetService("RunService")
+
+local localPlayer = Players.LocalPlayer local playerGui = localPlayer:WaitForChild("PlayerGui") local character, hrp, humanoid
+
+-- Config local WALK_SPEED = 16 local SPRINT_SPEED = 36 local FLY_SPEED = 60 local TELEPORT_OFFSET = Vector3.new(0, 3, 0) local FLY_ACCEL = 0.15
+
+-- State local isFlying = false local isSprinting = false local flyVelocity = Vector3.new()
+
+-- Screen GUI local screenGui = Instance.new("ScreenGui") screenGui.Name = "TuyenGUI" screenGui.ResetOnSpawn = false screenGui.Parent = playerGui
+
+-- Header (Tuyên GUI / VIP) local header = Instance.new("TextLabel") header.Name = "Header" header.Size = UDim2.new(1, 0, 0, 60) header.Position = UDim2.new(0, 0, 0, 0) header.BackgroundTransparency = 1 header.Text = "Tuyên GUI" header.Font = Enum.Font.GothamBlack header.TextScaled = true header.TextColor3 = Color3.fromRGB(255, 0, 0) header.TextStrokeTransparency = 0.5 header.Parent = screenGui
+
+local subHeader = Instance.new("TextLabel") subHeader.Name = "SubHeader" subHeader.Size = UDim2.new(1, 0, 0, 40) subHeader.Position = UDim2.new(0, 0, 0, 55) subHeader.BackgroundTransparency = 1 subHeader.Text = "VIP" subHeader.Font = Enum.Font.GothamBold subHeader.TextScaled = true subHeader.TextColor3 = Color3.fromRGB(255, 100, 100) subHeader.TextStrokeTransparency = 0.5 subHeader.Parent = screenGui
+
+-- Create button helper local function makeButton(name, text, pos) local btn = Instance.new("TextButton") btn.Name = name btn.Size = UDim2.new(0, 140, 0, 55) btn.Position = pos btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0) btn.TextColor3 = Color3.fromRGB(255,255,255) btn.Font = Enum.Font.GothamBold btn.TextSize = 22 btn.Text = text btn.BorderSizePixel = 3 btn.BorderColor3 = Color3.fromRGB(200, 0, 0) btn.AutoButtonColor = true
+
+-- Rounded corners + shadow effect
+local corner = Instance.new("UICorner", btn)
+corner.CornerRadius = UDim.new(0, 12)
+
+local shadow = Instance.new("UIStroke", btn)
+shadow.Color = Color3.fromRGB(255, 120, 120)
+shadow.Thickness = 1.5
+
+btn.Parent = screenGui
+return btn
+
+end
+
+local flyBtn = makeButton("FlyBtn", "🕊️ Bay", UDim2.new(0.05, 0, 0.75, 0)) local sprintBtn = makeButton("SprintBtn", "⚡ Chạy", UDim2.new(0.05, 0, 0.85, 0)) local tpBtn = makeButton("TPBtn", "🎯 Dịch Chuyển", UDim2.new(0.7, 0, 0.8, 0))
+
+-- Character setup local function refreshCharacter() character = localPlayer.Character or localPlayer.CharacterAdded:Wait() hrp = character:WaitForChild("HumanoidRootPart") humanoid = character:WaitForChild("Humanoid") end
+
+refreshCharacter() localPlayer.CharacterAdded:Connect(refreshCharacter)
+
+-- Sprint toggle local function toggleSprint() if not humanoid then return end isSprinting = not isSprinting if isSprinting then humanoid.WalkSpeed = SPRINT_SPEED sprintBtn.Text = "⚡ Bình Thường" else humanoid.WalkSpeed = WALK_SPEED sprintBtn.Text = "⚡ Chạy" end end
+
+-- Teleport nearest player local function teleportNearest() if not hrp then return end local nearest, nearestDist = nil, math.huge for _, pl in pairs(Players:GetPlayers()) do if pl ~= localPlayer and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then local dist = (pl.Character.HumanoidRootPart.Position - hrp.Position).Magnitude if dist < nearestDist then nearest = pl nearestDist = dist end end end if nearest and nearest.Character and nearest.Character:FindFirstChild("HumanoidRootPart") then hrp.CFrame = CFrame.new(nearest.Character.HumanoidRootPart.Position + TELEPORT_OFFSET) end end
+
+-- Fly toggle local function startFlying() if isFlying then return end isFlying = true humanoid.PlatformStand = true flyBtn.Text = "🕊️ Dừng Bay"
+
+RunService:BindToRenderStep("FlyMobile", Enum.RenderPriority.Character.Value, function()
+    if not isFlying or not hrp then
+        RunService:UnbindFromRenderStep("FlyMobile")
+        humanoid.PlatformStand = false
+        return
+    end
+
+    local moveVec = Vector3.new()
+    local moveDir = humanoid.MoveDirection
+    if moveDir.Magnitude > 0 then
+        moveVec = workspace.CurrentCamera.CFrame:VectorToWorldSpace(moveDir) * FLY_SPEED
+    end
+    moveVec += Vector3.new(0, 0.5, 0)
+
+    flyVelocity = flyVelocity:Lerp(moveVec, FLY_ACCEL)
+    hrp.Velocity = flyVelocity
+end)
+
+end
+
+local function stopFlying() isFlying = false flyBtn.Text = "🕊️ Bay" humanoid.PlatformStand = false RunService:UnbindFromRenderStep("FlyMobile") end
+
+local function toggleFly() if isFlying then stopFlying() else startFlying() end end
+
+-- Button connections flyBtn.MouseButton1Click:Connect(toggleFly) sprintBtn.MouseButton1Click:Connect(toggleSprint) tpBtn.MouseButton1Click:Connect(teleportNearest)
+
+-- Death reset humanoid.Died:Connect(function() stopFlying() isSprinting = false sprintBtn.Text = "⚡ Chạy" end)
+
+print("🔥 Tuyên GUI VIP loaded successfully!")
