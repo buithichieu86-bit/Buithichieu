@@ -1,0 +1,159 @@
+-- 🟥 TUYÊN VIP SCRIPT (DÀNH CHO ĐIỆN THOẠI - ẨN/HIỆN MENU) 🟥
+-- Tạo bởi bạn để học scripting Roblox (không loadstring, không vi phạm)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+-- 🟥 GIAO DIỆN CHÍNH 🟥
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "TuyenVIPGui"
+gui.ResetOnSpawn = false
+
+-- Nút chính (TUYÊN VIP)
+local mainBtn = Instance.new("TextButton", gui)
+mainBtn.Size = UDim2.new(0, 180, 0, 70)
+mainBtn.Position = UDim2.new(1, -200, 1, -120)
+mainBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+mainBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+mainBtn.Text = "🟥 TUYÊN VIP 🟥"
+mainBtn.Font = Enum.Font.GothamBold
+mainBtn.TextScaled = true
+mainBtn.BorderSizePixel = 3
+mainBtn.ZIndex = 2
+
+-- Khung menu
+local menu = Instance.new("Frame", gui)
+menu.Size = UDim2.new(0, 270, 0, 350)
+menu.Position = UDim2.new(1, -290, 1, -480)
+menu.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+menu.BorderColor3 = Color3.fromRGB(255, 0, 0)
+menu.Visible = false
+menu.ZIndex = 1
+
+-- Hàm tạo nút lớn dễ bấm cho điện thoại
+local function createButton(text, y)
+	local btn = Instance.new("TextButton", menu)
+	btn.Size = UDim2.new(1, -10, 0, 60)
+	btn.Position = UDim2.new(0, 5, 0, y)
+	btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextScaled = true
+	btn.Text = text
+	btn.BorderSizePixel = 2
+	return btn
+end
+
+-- Các nút chức năng
+local flyBtn = createButton("🕊️ Bay", 10)
+local speedUpBtn = createButton("⚡ Tốc độ +", 80)
+local speedDownBtn = createButton("🐢 Tốc độ -", 150)
+local tpBtn = createButton("🚀 Dịch chuyển", 220)
+local closeBtn = createButton("❌ Đóng Menu", 290)
+
+-- Mở menu bằng nút
+mainBtn.MouseButton1Click:Connect(function()
+	menu.Visible = not menu.Visible
+end)
+closeBtn.MouseButton1Click:Connect(function()
+	menu.Visible = false
+end)
+
+-- 🕊️ Bay
+local flying = false
+local flySpeed = 50
+local bv
+
+local function startFly()
+	if flying then return end
+	flying = true
+	bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+	bv.Velocity = Vector3.zero
+	bv.Parent = hrp
+	flyBtn.Text = "🕊️ Đang Bay"
+end
+
+local function stopFly()
+	flying = false
+	if bv then bv:Destroy() bv = nil end
+	flyBtn.Text = "🕊️ Bay"
+end
+
+flyBtn.MouseButton1Click:Connect(function()
+	if flying then stopFly() else startFly() end
+end)
+
+-- Điều khiển hướng bay (camera hướng tới)
+local move = {f = 0, b = 0, l = 0, r = 0}
+local cam = workspace.CurrentCamera
+RunService.RenderStepped:Connect(function()
+	if flying and bv then
+		local dir = Vector3.zero
+		local cf = cam.CFrame
+		dir = (cf.LookVector * (move.f - move.b)) + (cf.RightVector * (move.r - move.l))
+		bv.Velocity = dir * flySpeed
+	end
+end)
+
+-- ⚡ Tốc độ
+local speed = 16
+speedUpBtn.MouseButton1Click:Connect(function()
+	speed = math.clamp(speed + 8, 16, 120)
+	hum.WalkSpeed = speed
+	speedUpBtn.Text = "⚡ Tốc: " .. speed
+end)
+speedDownBtn.MouseButton1Click:Connect(function()
+	speed = math.clamp(speed - 8, 16, 120)
+	hum.WalkSpeed = speed
+	speedDownBtn.Text = "🐢 Tốc: " .. speed
+end)
+hum.WalkSpeed = speed
+
+-- 🚀 Dịch chuyển
+tpBtn.MouseButton1Click:Connect(function()
+	local players = {}
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= player then table.insert(players, p.Name) end
+	end
+	if #players == 0 then
+		tpBtn.Text = "🚫 Không có ai"
+		task.wait(1)
+		tpBtn.Text = "🚀 Dịch chuyển"
+		return
+	end
+	local name = players[math.random(1, #players)]
+	local target = Players:FindFirstChild(name)
+	if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+		hrp.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+		tpBtn.Text = "✅ Đến: " .. name
+		task.wait(1.5)
+		tpBtn.Text = "🚀 Dịch chuyển"
+	end
+end)
+
+-- 🟥 Nhãn góc màn hình
+local label = Instance.new("TextLabel", gui)
+label.Size = UDim2.new(0, 160, 0, 40)
+label.Position = UDim2.new(1, -180, 0, 20)
+label.BackgroundTransparency = 1
+label.Text = "🟥 TUYÊN SCRIPT – VIP"
+label.TextColor3 = Color3.fromRGB(255, 0, 0)
+label.Font = Enum.Font.GothamBold
+label.TextScaled = true
+
+-- 👆 Ẩn/hiện bằng cách chạm 2 lần
+local lastTap = 0
+UIS.TouchTap:Connect(function()
+	local now = tick()
+	if now - lastTap < 0.35 then
+		menu.Visible = not menu.Visible
+	end
+	lastTap = now
+end)
