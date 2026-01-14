@@ -1,0 +1,126 @@
+--[[
+    Move No Teleport GUI - Bản nâng cấp có Hotkey
+    Phím L: Ẩn/Hiện Menu
+    Phím K: Dừng di chuyển ngay lập tức
+]]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- Ngăn chặn chạy đè nhiều GUI
+if player.PlayerGui:FindFirstChild("MoveNoTeleportGUI") then
+    player.PlayerGui.MoveNoTeleportGUI:Destroy()
+end
+
+local savedCFrame = nil
+local currentTween = nil
+local isVisible = true
+
+-- Khởi tạo GUI
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "MoveNoTeleportGUI"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 280, 0, 220)
+frame.Position = UDim2.new(0.05, 0, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = ToolUint.new(0, 8)
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Text = "MOVE SMOOTH [L]"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+title.TextScaled = true
+
+local saveBtn = Instance.new("TextButton", frame)
+saveBtn.Size = UDim2.new(0.8, 0, 0, 35)
+saveBtn.Position = UDim2.new(0.1, 0, 0.22, 0)
+saveBtn.Text = "Lưu Vị Trí"
+saveBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+saveBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", saveBtn)
+
+local moveBtn = Instance.new("TextButton", frame)
+moveBtn.Size = UDim2.new(0.8, 0, 0, 35)
+moveBtn.Position = UDim2.new(0.1, 0, 0.42, 0)
+moveBtn.Text = "Bắt Đầu Bay"
+moveBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 180)
+moveBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", moveBtn)
+
+local stopBtn = Instance.new("TextButton", frame)
+stopBtn.Size = UDim2.new(0.8, 0, 0, 30)
+stopBtn.Position = UDim2.new(0.1, 0, 0.62, 0)
+stopBtn.Text = "Dừng [K]"
+stopBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+stopBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", stopBtn)
+
+local speedBox = Instance.new("TextBox", frame)
+speedBox.Size = UDim2.new(0.8, 0, 0, 30)
+speedBox.Position = UDim2.new(0.1, 0, 0.8, 0)
+speedBox.Text = "50"
+speedBox.PlaceholderText = "Tốc độ..."
+speedBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+speedBox.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", speedBox)
+
+-- Functions
+local function getHRP()
+    return player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+end
+
+local function stopMovement()
+    if currentTween then currentTween:Cancel() end
+    local hrp = getHRP()
+    if hrp then hrp.Anchored = false end
+end
+
+-- Events
+saveBtn.MouseButton1Click:Connect(function()
+    local hrp = getHRP()
+    if hrp then
+        savedCFrame = hrp.CFrame
+        saveBtn.Text = "✅ Đã Lưu"
+        task.wait(1)
+        saveBtn.Text = "Lưu Vị Trí"
+    end
+end)
+
+moveBtn.MouseButton1Click:Connect(function()
+    local hrp = getHRP()
+    if not savedCFrame or not hrp then return end
+    stopMovement()
+    
+    local speed = tonumber(speedBox.Text) or 50
+    local dist = (savedCFrame.Position - hrp.Position).Magnitude
+    local duration = dist / speed
+    
+    currentTween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = savedCFrame})
+    hrp.Anchored = true
+    currentTween:Play()
+    currentTween.Completed:Connect(function() hrp.Anchored = false end)
+end)
+
+stopBtn.MouseButton1Click:Connect(stopMovement)
+
+-- Xử lý Hotkeys
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.L then -- Phím L ẩn/hiện
+        isVisible = not isVisible
+        frame.Visible = isVisible
+    elseif input.KeyCode == Enum.KeyCode.K then -- Phím K dừng ngay
+        stopMovement()
+    end
+end)
